@@ -15,5 +15,5 @@ std::map<int, AnchorCfg> anchor_cfg = {
 #endif
 
 bool dense_anchor = false;
-float cls_threshold = 0.8;
+float cls_threshold = 0.5;
 float nms_threshold = 0.4;

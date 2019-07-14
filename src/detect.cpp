@@ -2,10 +2,13 @@
 //#include "inference.hpp"
 #include "opencv2/opencv.hpp"
 #include "config.h"
-#include "detect.h"
 #include "tools.h"
 
 using namespace std;
+
+string path_to_fd_model_;
+std::shared_ptr<caffe::Net<float> > fd_net_;
+int fd_n_, fd_c_, fd_h_, fd_w_;
 
 void printMat(const cv::Mat &image)
 {
@@ -52,7 +55,7 @@ void wrapInputLayer(std::shared_ptr<caffe::Net<float> > net_, std::vector<cv::Ma
 
 std::vector<Anchor>  detect_face(cv::Mat& input)
 {
-    assert(input.rows == fd_h_ && input.cols == fd_w_ && input.channels() == fd_c_);
+//    assert(input.rows == fd_h_ && input.cols == fd_w_ && input.channels() == fd_c_);
     std::vector<cv::Mat> fd_input_channels;
     wrapInputLayer(fd_net_, &fd_input_channels);
     preprocess(input, &fd_input_channels);
@@ -101,7 +104,7 @@ int main(int argc, char** argv) {
 
     caffe::Caffe::set_mode(caffe::Caffe::CPU);
     //caffe::Caffe::SetDevice(0);
-    path_to_fd_model_ = std::string("/work/code/RetinaFace-Cpp/caffemodel/mnet.prototxt");
+    path_to_fd_model_ = std::string("mnet.prototxt");
     string path_to_fd_caffemodel = path_to_fd_model_.substr(0 ,path_to_fd_model_.size()-8) + "caffemodel";
     fd_net_.reset(new caffe::Net<float>(path_to_fd_model_, caffe::TEST));
     fd_net_->CopyTrainedLayersFrom(path_to_fd_caffemodel);
@@ -115,13 +118,15 @@ int main(int argc, char** argv) {
     fd_n_ = 1;
 
     cv::Mat img = cv::imread(argv[1]);
-    cv::Mat input = img.clone();
 
+    cv::Mat input;
+    cv::copyMakeBorder(img, input, 5334-2767, 0, 0, 0, cv::BORDER_CONSTANT, cv::Scalar(0,0,0));
+    cv::resize(input, input, cv::Size(fd_w_, fd_h_));
     std::vector<Anchor> result = detect_face(input);
     for(int i = 0; i < result.size(); i ++) {
-	cv::rectangle(img, cv::Point((int)result[i].finalbox.x, (int)result[i].finalbox.y), cv::Point((int)result[i].finalbox.width, (int)result[i].finalbox.height), cv::Scalar(0, 255, 255), 2, 8, 0);
+	cv::rectangle(input, cv::Point((int)result[i].finalbox.x, (int)result[i].finalbox.y), cv::Point((int)result[i].finalbox.width, (int)result[i].finalbox.height), cv::Scalar(0, 255, 255), 2, 8, 0);
     }
-    cv::imwrite("result.jpg", img);
+    cv::imwrite("result.jpg", input);
 
     return 0;
 }
